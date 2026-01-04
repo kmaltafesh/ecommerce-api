@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
-class AuthController extends Controller
+class CustomerAuthController extends Controller
 {
     //
-    public function register(Request $request)
+     public function register(Request $request)
     {
         //Validate the request
         $data = $request->validate([
@@ -25,6 +25,7 @@ class AuthController extends Controller
             'name' => $data['name'],
             'email' => $data['email'],
             'password' => $data['password'],
+            'type'=>$data['customer'],
         ]);
 
         $token = $user->createToken('auth_token')->plainTextToken;
@@ -55,17 +56,11 @@ class AuthController extends Controller
         ], 200);
     }
     public function logout(Request $request)
-{
-    /** @var \Laravel\Sanctum\PersonalAccessToken $token */
-    $token = $request->user()->currentAccessToken();
+    {
 
-    if ($token) {
-        $token->delete();
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => "User Logged out successfully"], 200);
     }
-
-    return response()->json(['message' => "User logged out successfully"], 200);
-}
-
     //get user(profile)
     public function me(Request $request)
     {
