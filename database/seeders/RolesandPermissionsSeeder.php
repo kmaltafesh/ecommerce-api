@@ -7,66 +7,73 @@ use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
-class RolesandPermissionsSeeder extends Seeder
+class RolesAndPermissionsSeeder extends Seeder
 {
     public function run(): void
     {
-        // مسح الكاش
+        // مسح كاش الصلاحيات
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        // صلاحيات المنتجات
-        Permission::create(['name' => "view products"]);
-        Permission::create(['name' => "create products"]);
-        Permission::create(['name' => "edit products"]);
-        Permission::create(['name' => "delete products"]);
+        /*
+        |--------------------------------------------------------------------------
+        | Permissions
+        |--------------------------------------------------------------------------
+        */
+        $permissions = [
 
-        // صلاحيات الطلبات
-        Permission::create(['name' => "view orders"]);
-        Permission::create(['name' => "create orders"]);
-        Permission::create(['name' => "update orders"]);
-        Permission::create(['name' => "cancel orders"]);
-
-        // صلاحيات المستخدمين
-        Permission::create(['name' => "view users"]);
-        Permission::create(['name' => "edit users"]);
-
-        // صلاحيات التوصيل
-        Permission::create(['name' => "view deliveries"]);
-        Permission::create(['name' => "update delivery status"]);
-
-        // إنشاء الدور Admin
-        $adminRole = Role::create(['name' => 'admin']);
-        $adminRole->givePermissionTo([
+            // Products
             'view products',
             'create products',
-            'edit products',
+            'update products',
             'delete products',
+            'restore products',
+            'force delete products',
+
+            // Orders
             'view orders',
             'create orders',
             'update orders',
             'cancel orders',
-            'view users',
-            'edit users',
-            'view deliveries',
-            'update delivery status'
-        ]);
 
-        // إنشاء الدور Customer
-        $customerRole = Role::create(['name' => 'customer']);
-        $customerRole->givePermissionTo([
+            // Users
+            'view users',
+            'update users',
+
+            // Deliveries
+            'view deliveries',
+            'update deliveries',
+        ];
+
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate(['name' => $permission]);
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Roles
+        |--------------------------------------------------------------------------
+        */
+
+        // Admin → كل الصلاحيات
+        $admin = Role::firstOrCreate(['name' => 'admin']);
+        $admin->syncPermissions(Permission::all());
+
+        // Customer
+        $customer = Role::firstOrCreate(['name' => 'customer']);
+        $customer->syncPermissions([
             'view products',
             'view orders',
             'create orders',
-            'cancel orders'
+            'cancel orders',
         ]);
 
-        // إنشاء الدور Delivery
-        $deliveryRole = Role::create(['name' => 'delivery']);
-        $deliveryRole->givePermissionTo([
-            'view deliveries',
-            'update delivery status',
+        // Delivery
+        $delivery = Role::firstOrCreate(['name' => 'delivery']);
+        $delivery->syncPermissions([
+            'view products',
             'view orders',
-            'view products'
+            'view deliveries',
+            'update deliveries',
         ]);
     }
 }
