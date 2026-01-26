@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\CategoryController;
 use Illuminate\Support\Facades\Route;
@@ -9,6 +10,7 @@ use Illuminate\Support\Facades\Route;
 | Public Routes
 |--------------------------------------------------------------------------
 */
+
 Route::middleware('api')->group(function () {
 
     // Products (Public View)
@@ -72,4 +74,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::delete('categories/{category}', [CategoryController::class, 'destroy'])
         ->middleware('permission:delete categories');
+
+    //handle payment
+    Route::post('orders/{order}/payments', [PaymentController::class, 'createPayment']);
+    Route::get('payments/{paymentId}/confirm', [PaymentController::class, 'confirmPayment']);
+
+    //webhook endpoints
+    Route::post('webhook/stripe', [PaymentController::class, 'stripewebhook']);
 });

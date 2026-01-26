@@ -5,7 +5,8 @@ namespace App\Models;
 use App\Enum\Orderstatus;
 use App\Enum\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Support\Facades\Auth;
+use  App\Events\OrderStatusChanged;
 class Order extends Model
 {
     //
@@ -49,7 +50,48 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
-   public static function generateOrderNumber()
+    public function statusHistory()
+    {
+        return $this->hasMany(OrderStatusHistory::class)->latest();
+    }
+    public function transitionTo(Orderstatus $newStatus, ?User $changedBy = null, ?string $notes = null)
+    {
+        if ($this->status === $newStatus) {
+            return true;
+        }
+        if (!$this->status->canTransitionTo($newStatus)) {
+            return false;
+        }
+
+        $oldStatus = $this->status;
+        $this->update(['status' => $newStatus]);
+        $this->statusHistory()->create([
+            'order_id' => $this->id,
+            'from_status' => $oldStatus,
+            'to_status' => $newStatus,
+            'user_id' => $changedBy?->id ?? Auth::id(),
+            'notes' => $notes,
+
+        ]);
+           OrderStatusChanged::dispatch(
+        $this,
+        $oldStatus->value,
+        $changedBy?->name ?? Auth::user()->name
+    );
+        return true;
+    }
+
+ 
+
+    public function getAllowedTranstions(): array
+    {
+        return $this->status->getAllowedTranstions();
+    }
+    public function getLatestTranstions(): array
+    {
+        return $this->statusHistory()->first();
+    }
+    public static function generateOrderNumber()
     {
         // سيتولد رقم مثل: ORD-20260116-ABCD
         return 'ORD-' . date('Ymd') . '-' . strtoupper(\Illuminate\Support\Str::random(4));
@@ -76,5 +118,11 @@ class Order extends Model
         $this->update([
             'payment_status' => PaymentStatus::FAILED,
         ]);
+    }
+
+    public function canAcceptPayment(): bool
+    {
+        return $this->payment_status === PaymentStatus::PENDING ||
+            $this->payment_status === PaymentStatus::FAILED;
     }
 }
